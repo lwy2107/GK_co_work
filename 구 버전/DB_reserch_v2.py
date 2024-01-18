@@ -2,11 +2,17 @@ import mysql.connector
 import tkinter as tk
 from tkinter import ttk, filedialog
 import pandas as pd  
+from datetime import datetime, timedelta
+
 
 class App:
     def __init__(self, root):
+
         self.root = root
         self.root.title("데이터 조회 프로그램")
+
+        self.insert_button = ttk.Button(root, text="추가", command=self.open_insert_window, width=5)
+        self.insert_button.grid(row=0, column=13, padx=0, pady=0)
 
         # 년도 선택 콤보박스
         self.year_label = ttk.Label(root, text="년도:",width=4)
@@ -62,6 +68,122 @@ class App:
 
         # 창 크기 변경 시 Treeview 크기 조정
         self.root.bind("<Configure>", self.on_window_resize)
+    def open_insert_window(self):
+        self.insert_window = tk.Toplevel(self.root)
+        self.insert_window.title("데이터 추가")
+
+        self.date_label = ttk.Label(self.insert_window, text="날짜 (YYYYMMDD):")
+        self.date_label.grid(row=0, column=0)
+        self.date_entry = ttk.Entry(self.insert_window)
+        self.date_entry.grid(row=0, column=1)
+
+        self.time_label = ttk.Label(self.insert_window, text="시간 (HH:MM):")
+        self.time_label.grid(row=1, column=0)
+        self.time_entry = ttk.Entry(self.insert_window)
+        self.time_entry.grid(row=1, column=1)
+
+        self.location_label = ttk.Label(self.insert_window, text="지역:")
+        self.location_label.grid(row=2, column=0)
+        self.location_entry = ttk.Entry(self.insert_window)
+        self.location_entry.grid(row=2, column=1)
+
+        self.personnel_label = ttk.Label(self.insert_window, text="인원:")
+        self.personnel_label.grid(row=3, column=0)
+        self.personnel_entry = ttk.Entry(self.insert_window)
+        self.personnel_entry.grid(row=3, column=1)
+
+        self.remarks_label = ttk.Label(self.insert_window, text="비고:")
+        self.remarks_label.grid(row=4, column=0)
+        self.remarks_entry = ttk.Entry(self.insert_window)
+        self.remarks_entry.grid(row=4, column=1)
+
+        self.confirm_button = ttk.Button(self.insert_window, text="확인", command=self.save_data)
+        self.confirm_button.grid(row=5, columnspan=2)
+
+    def configure_tree_columns(self):
+        if self.selected_option == "1":
+            columns = ("테이블명", "회차", "출항시간", "입항시간", "연락처", "지역", "인원")
+        elif self.selected_option == "2":
+            columns = ("테이블명", "회차", "출항시간", "입항시간", "연락처", "지역", "합계")
+
+        self.tree["columns"] = columns
+
+        for i, col in enumerate(columns):
+            self.tree.heading(col, text=col)
+            if i == len(columns) - 1:
+                # 마지막 열의 너비를 충분히 줄임
+                self.tree.column(col, width=100, anchor="center", stretch=False)
+            else:
+                self.tree.column(col, width=100, anchor="center", stretch=False)
+    def save_data(self):
+        year = self.year_combobox.get()
+        date = self.date_entry.get()
+        time = self.time_entry.get()
+        location = self.location_entry.get()
+        personnel = self.personnel_entry.get()
+        remarks = self.remarks_entry.get()
+        self.selected_option = self.option_combobox.get()
+        self.db_config = {
+            'host': '220.69.222.136',
+            'user': 'tester',
+            'password': 'moonboat1124',
+            'database': f"{year}_s" if self.selected_option == "2" else str(year)
+        }
+
+        try:
+            with mysql.connector.connect(**self.db_config) as connection:
+                cursor = connection.cursor()
+
+                # 사용자 입력 날짜에 기반한 테이블 이름 생성
+                table_name = f"{date}"
+
+                # 테이블이 존재하지 않으면 생성
+                cursor.execute(f"SHOW TABLES LIKE '{table_name}'")
+                result = cursor.fetchone()
+                if not result:
+                    # 테이블이 없으면 동적으로 테이블 생성
+                    create_table_query = self.get_create_table_query()
+                    cursor.execute(create_table_query)
+
+                # 새 항목을 추가하기 전에 현재 테이블의 데이터 개수 확인
+                cursor.execute(f"SELECT COUNT(*) FROM `{table_name}`")
+                count = cursor.fetchone()[0]
+
+                # 출항시간에서 30분 후의 입항시간 계산
+                arrival_time = (datetime.strptime(time, "%H:%M") + timedelta(minutes=30)).strftime("%H:%M")
+
+                # 동적으로 쿼리 생성
+                insert_query = self.get_insert_query(table_name)
+
+                cursor.execute(insert_query, self.get_insert_values(count, time, arrival_time, personnel, location, remarks))
+                connection.commit()
+                print("데이터가 성공적으로 저장되었습니다!")
+
+        except mysql.connector.Error as err:
+            print(f"저장 오류: {err}")
+
+    def get_create_table_query(self):
+        # 옵션에 따라 다른 칼럼 사용
+        if self.selected_option == "1":
+            return f"CREATE TABLE `{table_name}` (회차 INT AUTO_INCREMENT PRIMARY KEY, 출항시간 TIME, 입항시간 TIME, 연락처 VARCHAR(255), 지역 VARCHAR(255), 인원 INT, 비고 VARCHAR(255))"
+        elif self.selected_option == "2":
+            return f"CREATE TABLE `{table_name}` (회차 INT AUTO_INCREMENT PRIMARY KEY, 출항시간 TIME, 입항시간 TIME, 연락처 VARCHAR(255), 지역 VARCHAR(255), 합계 VARCHAR(255))"
+
+    def get_insert_query(self, table_name):
+        # 옵션에 따라 다른 칼럼 사용
+        if self.selected_option == "1":
+            return f"INSERT INTO `{table_name}` (출항시간, 입항시간, 연락처, 지역, 인원, 비고) VALUES (%s, %s, %s, %s, %s, %s)"
+        elif self.selected_option == "2":
+            return f"INSERT INTO `{table_name}` (출항시간, 입항시간, 연락처, 지역, 합계) VALUES (%s, %s, %s, %s, %s)"
+
+    def get_insert_values(self, count, time, arrival_time, personnel, location, remarks):
+        # 옵션에 따라 다른 칼럼 사용
+        if self.selected_option == "1":
+            return (count + 1, time, arrival_time, personnel, location, int(personnel), remarks)
+        elif self.selected_option == "2":
+            return (count + 1, time, arrival_time, personnel, location, remarks)
+
+
 
     def on_window_resize(self, event):
         # 창 크기가 변경될 때 Treeview의 높이를 동적으로 조절
@@ -75,7 +197,7 @@ class App:
     def configure_tree_columns(self):
         
         if self.selected_option == "1":
-            columns = ("테이블명", "회차", "출항시간", "입항시간", "연락처", "인원")
+            columns = ("테이블명", "회차", "출항시간", "입항시간", "연락처", "지역", "인원")
         elif self.selected_option == "2":
             columns = ("테이블명", "회차", "출항시간", "입항시간", "연락처", "지역", "합계")
 
@@ -142,26 +264,31 @@ class App:
 
                 # 선택한 열들을 조회하는 쿼리 생성
                 if self.selected_option == "1":
-                    existing_columns = ["회차", "출항시간", "입항시간", "연락처","인원"]
+                    existing_columns = ["회차", "출항시간", "입항시간", "연락처","지역", "인원"]
                     select_query = ", ".join([f"`{col}`" if col in column_names else "''" for col in existing_columns])
 
                 elif self.selected_option == "2":
                     existing_columns = ["회차", "출항시간", "입항시간", "연락처", "지역", "합계"]
                     select_query = ", ".join([f"`{col}`" if col in column_names else "''" for col in existing_columns])
 
-
-                # 테이블별로 데이터 Treeview에 추가
+                            # 테이블별로 데이터 Treeview에 추가
                 for table in tables:
                     table_name = table[0]
                     union_query = f"SELECT '{table_name}' AS 'Table', {select_query} FROM `{table_name}`"
                     cursor.execute(union_query)
                     table_data = cursor.fetchall()
 
-                    # 검색어에 해당하는 데이터만 Treeview에 추가
+                    # Process and add table data to the Treeview
                     for row in table_data:
+                        # Check and handle missing or None values in the "지역" column
+                        if self.selected_option == "2" and (row[5] is None or row[5] == ''):
+                            row = list(row)
+                            row[5] = "No Data Available"  # Replace empty or None values with a placeholder
+                            row = tuple(row)
+
+                        # Check if the search keyword matches any row data
                         if search_keyword.lower() in str(row).lower():
                             self.tree.insert("", "end", values=row)
-
         except mysql.connector.Error as err:
             print(f"에러: {err}")
 
