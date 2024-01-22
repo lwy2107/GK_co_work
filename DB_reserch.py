@@ -3,7 +3,7 @@ import tkinter as tk
 from tkinter import ttk, filedialog, messagebox, simpledialog, Entry, Tk, Label, Button
 import pandas as pd  
 from datetime import datetime, timedelta
-from datetime import datetime
+import datetime
 
 class App:
     def __init__(self, root):
@@ -87,21 +87,22 @@ class App:
         # 창 크기 변경 시 Treeview 크기 조정
         self.root.bind("<Configure>", self.on_window_resize)
 
+
     def configure_tree_columns(self):
         if self.selected_option == "1":
-            columns = ("테이블명", "회차", "출항시간", "입항시간", "연락처", "지역", "인원","비고")
+            columns = ("테이블명", "회차", "출항시간", "입항시간", "연락처", "지역", "인원", "비고", "요일")  # "요일" 열 추가
         elif self.selected_option == "2":
-            columns = ("테이블명", "회차", "출항시간", "입항시간", "연락처", "지역", "합계","비고")
+            columns = ("테이블명", "회차", "출항시간", "입항시간", "연락처", "지역", "대인", "소인", "합계", "비고", "요일")  # "요일" 열 추가
 
         self.tree["columns"] = columns
 
         for i, col in enumerate(columns):
             self.tree.heading(col, text=col)
             if i == len(columns) - 1:
-                # 마지막 열의 너비를 충분히 줄임
                 self.tree.column(col, width=100, anchor="center", stretch=False)
             else:
                 self.tree.column(col, width=100, anchor="center", stretch=False)
+
 
     def on_window_resize(self, event):
         # 창 크기가 변경될 때 Treeview의 높이를 동적으로 조절
@@ -112,23 +113,6 @@ class App:
         self.configure_tree_columns()
         for item in self.tree.get_children():
             self.tree.delete(item)
-    def configure_tree_columns(self):
-        
-        if self.selected_option == "1":
-            columns = ("테이블명", "회차", "출항시간", "입항시간", "연락처", "지역", "인원", "비고")
-        elif self.selected_option == "2":
-            columns = ("테이블명", "회차", "출항시간", "입항시간", "연락처", "지역","대인","소인", "합계", "비고")
-
-        self.tree["columns"] = columns
-
-        for i, col in enumerate(columns):
-            self.tree.heading(col, text=col)
-            if i == len(columns) - 1:
-                # 마지막 열의 너비를 충분히 줄임
-                self.tree.column(col, width=100, anchor="center", stretch=False)
-            else:
-                self.tree.column(col, width=100, anchor="center", stretch=False)
-
 
     def fetch_and_display_data(self):
         year = self.year_combobox.get()
@@ -182,17 +166,25 @@ class App:
 
                 # 선택한 열들을 조회하는 쿼리 생성
                 if self.selected_option == "1":
-                    existing_columns = ["회차", "출항시간", "입항시간", "연락처","지역", "인원", "비고"]
+                    existing_columns = ["회차", "출항시간", "입항시간", "연락처", "지역", "인원", "비고"]
                     select_query = ", ".join([f"`{col}`" if col in column_names else "''" for col in existing_columns])
 
                 elif self.selected_option == "2":
-                    existing_columns = ["회차", "출항시간", "입항시간", "연락처", "지역","대인","소인", "합계", "비고"]
+                    existing_columns = ["회차", "출항시간", "입항시간", "연락처", "지역", "대인", "소인", "요일", "소계", "합계", "승선인원", "비고"]
                     select_query = ", ".join([f"`{col}`" if col in column_names else "''" for col in existing_columns])
 
-                            # 테이블별로 데이터 Treeview에 추가
+                # 테이블별로 데이터 Treeview에 추가
                 for table in tables:
                     table_name = table[0]
-                    union_query = f"SELECT '{table_name}' AS 'Table', {select_query} FROM `{table_name}`"
+
+                    # 테이블명에서 날짜 정보 추출
+                    date_str = table_name[len(year):]  # 테이블명에서 년도 이후의 문자열 추출
+                    date_object = datetime.datetime.strptime(date_str, "%m%d")
+                    weekday = date_object.strftime("%A")
+
+                    select_query_with_weekday = f"{select_query}, '{self.get_korean_weekday(weekday)}' AS '요일'"  # 요일을 그대로 사용
+
+                    union_query = f"SELECT '{table_name}' AS 'Table', {select_query_with_weekday} FROM `{table_name}`"
                     cursor.execute(union_query)
                     table_data = cursor.fetchall()
 
@@ -209,6 +201,17 @@ class App:
                             self.tree.insert("", "end", values=row)
         except mysql.connector.Error as err:
             print(f"에러: {err}")
+
+    def get_korean_weekday(self, weekday):
+        # 요일을 한글로 변환하는 함수
+        weekdays = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+        korean_weekdays = ["월요일", "화요일", "수요일", "목요일", "금요일", "토요일", "일요일"]
+        
+        if weekday in weekdays:
+            return korean_weekdays[weekdays.index(weekday)]
+        else:
+            return weekday
+
 
     def export_to_excel(self):
         # 트리뷰의 열 이름 가져오기
