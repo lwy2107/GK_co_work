@@ -7,6 +7,15 @@ from datetime import datetime
 
 class App:
     def __init__(self, root):
+        self.db_config = {
+            'host': '220.69.222.136',
+            'user': 'tester',
+            'password': 'moonboat1124',
+            'database': '',  # Leave it empty for now
+        }
+        self.selected_data_id = None
+        self.selected_data_num = None
+        self.column_value = None
         
         self.root = root
         self.root.title("데이터 조회 프로그램")
@@ -77,85 +86,6 @@ class App:
 
         # 창 크기 변경 시 Treeview 크기 조정
         self.root.bind("<Configure>", self.on_window_resize)
-
-    def open_insert_window(self):
-        if self.selected_option == "1":
-            self.insert_window = tk.Toplevel(self.root)
-            self.insert_window.title("데이터 추가")
-
-            self.date_label = ttk.Label(self.insert_window, text="날짜 (YYYYMMDD):")
-            self.date_label.grid(row=0, column=0)
-            self.date_entry = ttk.Entry(self.insert_window)
-            self.date_entry.grid(row=0, column=1)
-
-            self.time_label = ttk.Label(self.insert_window, text="시간 (HH:MM):")
-            self.time_label.grid(row=1, column=0)
-            self.time_entry = ttk.Entry(self.insert_window)
-            self.time_entry.grid(row=1, column=1)
-
-            self.location_label = ttk.Label(self.insert_window, text="지역:")
-            self.location_label.grid(row=2, column=0)
-            self.location_entry = ttk.Entry(self.insert_window)
-            self.location_entry.grid(row=2, column=1)
-
-            self.personnel_label = ttk.Label(self.insert_window, text="인원:")
-            self.personnel_label.grid(row=3, column=0)
-            self.personnel_entry = ttk.Entry(self.insert_window)
-            self.personnel_entry.grid(row=3, column=1)
-            
-            self.phone_label = ttk.Label(self.insert_window, text="연락처:")
-            self.phone_label.grid(row=4, column=0)
-            self.phone_entry = ttk.Entry(self.insert_window)
-            self.phone_entry.grid(row=4, column=1)
-
-            self.remarks_label = ttk.Label(self.insert_window, text="비고:")
-            self.remarks_label.grid(row=5, column=0)
-            self.remarks_entry = ttk.Entry(self.insert_window)
-            self.remarks_entry.grid(row=5, column=1)
-
-            self.confirm_button = ttk.Button(self.insert_window, text="확인", command=self.save_data)
-            self.confirm_button.grid(row=6, columnspan=2)
-        elif self.selected_option == "2":
-            self.insert_window = tk.Toplevel(self.root)
-            self.insert_window.title("데이터 추가")
-
-            self.date_label = ttk.Label(self.insert_window, text="날짜 (YYYYMMDD):")
-            self.date_label.grid(row=0, column=0)
-            self.date_entry = ttk.Entry(self.insert_window)
-            self.date_entry.grid(row=0, column=1)
-
-            self.time_label = ttk.Label(self.insert_window, text="시간 (HH:MM):")
-            self.time_label.grid(row=1, column=0)
-            self.time_entry = ttk.Entry(self.insert_window)
-            self.time_entry.grid(row=1, column=1)
-
-            self.location_label = ttk.Label(self.insert_window, text="지역:")
-            self.location_label.grid(row=2, column=0)
-            self.location_entry = ttk.Entry(self.insert_window)
-            self.location_entry.grid(row=2, column=1)
-
-            self.personnel_label = ttk.Label(self.insert_window, text="대인:")
-            self.personnel_label.grid(row=3, column=0)
-            self.personnel_entry = ttk.Entry(self.insert_window)
-            self.personnel_entry.grid(row=3, column=1)
-
-            self.kid_label = ttk.Label(self.insert_window, text="소인:")
-            self.kid_label.grid(row=4, column=0)
-            self.kid_entry = ttk.Entry(self.insert_window)
-            self.kid_entry.grid(row=4, column=1)
-
-            self.phone_label = ttk.Label(self.insert_window, text="연락처:")
-            self.phone_label.grid(row=5, column=0)
-            self.phone_entry = ttk.Entry(self.insert_window)
-            self.phone_entry.grid(row=5, column=1)
-
-            self.remarks_label = ttk.Label(self.insert_window, text="비고:")
-            self.remarks_label.grid(row=6, column=0)
-            self.remarks_entry = ttk.Entry(self.insert_window)
-            self.remarks_entry.grid(row=6, column=1)
-
-            self.confirm_button = ttk.Button(self.insert_window, text="확인2", command=self.save_data)
-            self.confirm_button.grid(row=7, columnspan=2)
 
     def configure_tree_columns(self):
         if self.selected_option == "1":
@@ -302,6 +232,87 @@ class App:
                 print(f"엑셀 파일이 저장되었습니다: {file_path}")
             except Exception as e:
                 print(f"엑셀 파일을 저장하는 중 오류가 발생했습니다: {e}")
+
+    def open_insert_window(self):
+        if self.selected_option == "1":
+            self.insert_window = tk.Toplevel(self.root)
+            self.insert_window.title("데이터 추가")
+
+            self.date_label = ttk.Label(self.insert_window, text="날짜 (YYYYMMDD):")
+            self.date_label.grid(row=0, column=0)
+            self.date_entry = ttk.Entry(self.insert_window)
+            self.date_entry.grid(row=0, column=1)
+
+            self.time_label = ttk.Label(self.insert_window, text="시간 (HH:MM):")
+            self.time_label.grid(row=1, column=0)
+            self.time_entry = ttk.Entry(self.insert_window)
+            self.time_entry.grid(row=1, column=1)
+
+            self.location_label = ttk.Label(self.insert_window, text="지역:")
+            self.location_label.grid(row=2, column=0)
+            self.location_entry = ttk.Entry(self.insert_window)
+            self.location_entry.grid(row=2, column=1)
+
+            self.personnel_label = ttk.Label(self.insert_window, text="인원:")
+            self.personnel_label.grid(row=3, column=0)
+            self.personnel_entry = ttk.Entry(self.insert_window)
+            self.personnel_entry.grid(row=3, column=1)
+            
+            self.phone_label = ttk.Label(self.insert_window, text="연락처:")
+            self.phone_label.grid(row=4, column=0)
+            self.phone_entry = ttk.Entry(self.insert_window)
+            self.phone_entry.grid(row=4, column=1)
+
+            self.remarks_label = ttk.Label(self.insert_window, text="비고:")
+            self.remarks_label.grid(row=5, column=0)
+            self.remarks_entry = ttk.Entry(self.insert_window)
+            self.remarks_entry.grid(row=5, column=1)
+
+            self.confirm_button = ttk.Button(self.insert_window, text="확인", command=self.save_data_and_close)
+            self.confirm_button.grid(row=6, columnspan=2)
+        elif self.selected_option == "2":
+            self.insert_window = tk.Toplevel(self.root)
+            self.insert_window.title("데이터 추가")
+
+            self.date_label = ttk.Label(self.insert_window, text="날짜 (YYYYMMDD):")
+            self.date_label.grid(row=0, column=0)
+            self.date_entry = ttk.Entry(self.insert_window)
+            self.date_entry.grid(row=0, column=1)
+
+            self.time_label = ttk.Label(self.insert_window, text="시간 (HH:MM):")
+            self.time_label.grid(row=1, column=0)
+            self.time_entry = ttk.Entry(self.insert_window)
+            self.time_entry.grid(row=1, column=1)
+
+            self.location_label = ttk.Label(self.insert_window, text="지역:")
+            self.location_label.grid(row=2, column=0)
+            self.location_entry = ttk.Entry(self.insert_window)
+            self.location_entry.grid(row=2, column=1)
+
+            self.personnel_label = ttk.Label(self.insert_window, text="대인:")
+            self.personnel_label.grid(row=3, column=0)
+            self.personnel_entry = ttk.Entry(self.insert_window)
+            self.personnel_entry.grid(row=3, column=1)
+
+            self.kid_label = ttk.Label(self.insert_window, text="소인:")
+            self.kid_label.grid(row=4, column=0)
+            self.kid_entry = ttk.Entry(self.insert_window)
+            self.kid_entry.grid(row=4, column=1)
+
+            self.phone_label = ttk.Label(self.insert_window, text="연락처:")
+            self.phone_label.grid(row=5, column=0)
+            self.phone_entry = ttk.Entry(self.insert_window)
+            self.phone_entry.grid(row=5, column=1)
+
+            self.remarks_label = ttk.Label(self.insert_window, text="비고:")
+            self.remarks_label.grid(row=6, column=0)
+            self.remarks_entry = ttk.Entry(self.insert_window)
+            self.remarks_entry.grid(row=6, column=1)
+
+            self.confirm_button = ttk.Button(self.insert_window, text="확인2", command=self.save_data_and_close)
+            self.confirm_button.grid(row=7, columnspan=2)
+
+
     def save_data(self):
         year = self.year_combobox.get()
         date = self.date_entry.get()
@@ -375,17 +386,43 @@ class App:
             return f"INSERT INTO `{table_name}` (출항시간, 입항시간, 회차, 연락처, 지역, 대인, 소인, 요일, 소계, 합계, 승선인원, 비고) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
 
     def get_insert_values(self, count, time, arrival_time, personnel, kid, location, remarks, phone):
+        table_name = self.date_entry.get()
+        # 이하 코드는 이전과 동일
         date_object = datetime.strptime(self.date_entry.get(), "%Y%m%d")
         weekday = date_object.strftime("%A")
         kid = 0 if kid is None or not kid.isdigit() else int(kid)
         personnel = 0 if not personnel.isdigit() else int(personnel)
         total = kid + personnel
 
+        # '회차' 값을 현재 데이터베이스에 있는 최대 '회차' 값보다 1 증가시켜 설정
+        try:
+            with mysql.connector.connect(**self.db_config) as connection:
+                cursor = connection.cursor()
+                cursor.execute(f"SELECT MAX(회차) FROM `{table_name}`")
+                max_count = cursor.fetchone()[0]
+                count = max_count + 1 if max_count is not None else 1
+        except mysql.connector.Error as err:
+            print(f"회차 확인 오류: {err}")
+            count = None
         if self.selected_option == "1":
-            return (time, arrival_time, int(count + 1), phone, location, personnel, remarks)
+            return (time, arrival_time, count, phone, location, personnel, remarks)
         elif self.selected_option == "2":
-            return (time, arrival_time, int(count + 1), phone, location, personnel, kid, weekday, total, total, total, remarks)
-    
+            return (time, arrival_time, count, phone, location, personnel, kid, weekday, total, total, total, remarks)
+
+        try:
+            with mysql.connector.connect(**self.db_config) as connection:
+                cursor = connection.cursor()
+                cursor.execute(f"SELECT MAX(회차) FROM `{table_name}`")
+                max_count = cursor.fetchone()[0]
+                count = max_count + 1 if max_count is not None else 1
+        except mysql.connector.Error as err:
+            print(f"회차 확인 오류: {err}")
+            count = None
+        if self.selected_option == "1":
+            return (time, arrival_time, phone, location, personnel, remarks)
+        elif self.selected_option == "2":
+            return (time, arrival_time, phone, location, personnel, kid, weekday, total, total, total, remarks)
+                
     def get_user_input(self, title, prompt):
         root = tk.Tk()
         root.title(title)
@@ -397,25 +434,61 @@ class App:
         entry.pack(padx=10, pady=10)
 
         def on_confirm():
-            root.user_input = entry.get()
+            new_value = entry.get()
             root.destroy()
+
+            # 데이터베이스 연결 및 업데이트 수행
+            self.update_database(new_value)
 
         confirm_button = tk.Button(root, text="Confirm", command=on_confirm)
         confirm_button.pack(pady=10)
 
         root.mainloop()
 
-        return root.user_input if hasattr(root, "user_input") else None
+    def save_data_and_close(self):
+        # 데이터 저장
+        self.save_data()
+
+        # 입력 창 닫기
+        self.insert_window.destroy()
+
+    def update_database(self, new_value):
+        # 수정 쿼리 실행
+        update_query = f"""
+            UPDATE `{self.selected_data_id}`
+            SET `{self.column_value}` = %s
+            WHERE `회차` = {self.selected_data_num}
+        """
+
+        try:
+            with mysql.connector.connect(**self.db_config) as connection:
+                cursor = connection.cursor()
+
+                # 수정할 데이터를 토대로 쿼리 실행
+                cursor.execute(update_query, (new_value,))
+                connection.commit()
+
+                cursor.close()
+                print(f"Data with ID {self.selected_data_num} updated in the database.")
+
+        except mysql.connector.Error as err:
+            print(f"Database update error: {err}")
+
+    def set_selected_database(self):
+        # Assuming you have a combo box named database_combobox
+        self.selected_option = self.option_combobox.get()
+        year = self.year_combobox.get()
+
+        if self.selected_option == "2":
+            self.db_config['database'] = f"{year}_s"
+        else:
+            self.db_config['database'] = str(year)
 
     def edit_data(self, event):
         year = self.year_combobox.get()
         item = self.tree.selection()
-        self.db_config = {
-            'host': '220.69.222.136',
-            'user': 'tester',
-            'password': 'moonboat1124',
-            'database': f"{year}_s" if self.selected_option == "2" else str(year)
-        }
+        self.set_selected_database()
+
         if item:
             # 선택된 데이터의 ID와 테이블명을 저장
             self.selected_data_id = self.tree.item(item, "values")[0]
@@ -428,38 +501,13 @@ class App:
             print(f"Double-clicked column: {column}")
 
             # 선택된 열(column)의 값에 대한 정보 출력
-            column_value = self.tree.column(self.tree.identify_column(event.x), 'id')
-            print(f"Value of the selected column: {column_value}")
+            self.column_value = self.tree.column(self.tree.identify_column(event.x), 'id')
+            print(f"Value of the selected column: {self.column_value}")
 
-            # 여기에서 해당 열에 대한 수정 코드를 작성
-            # (수정할 데이터를 받아오는 추가 작업 필요)
+            # 수정할 데이터를 받아오기
+            self.get_user_input(f"수정 - {self.column_value}", f"{self.column_value} 값을 입력하세요")
 
-            # 예시로 수정할 데이터를 지정
-            # new_value = "새로운값"
-            new_value = self.get_user_input(f"수정 - {column_value}", f"{column_value} 값을 입력하세요")
 
-            if new_value is not None:
-                # 수정 쿼리 실행
-                update_query = f"""
-                    UPDATE `{self.selected_data_id}`
-                    SET `{column_value}` = %s
-                    WHERE `회차` = {self.selected_data_num}
-                """
-
-                try:
-                    with mysql.connector.connect(**self.db_config) as connection:
-                        cursor = connection.cursor()
-
-                        # 수정할 데이터를 토대로 쿼리 실행
-                        cursor.execute(update_query, (new_value,))
-                        connection.commit()
-
-                        cursor.close()
-                        print(f"Data with ID {self.selected_data_num} updated in the database.")
-
-                except mysql.connector.Error as err:
-                    print(f"Database update error: {err}")
-    
     def delete_data(self):
         self.selected_data_id = None
         year = self.year_combobox.get()
