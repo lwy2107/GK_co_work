@@ -1,9 +1,9 @@
 import mysql.connector
 import tkinter as tk
-from tkinter import ttk, filedialog, messagebox, simpledialog, Entry, Tk, Label, Button
+from tkinter import ttk, filedialog, messagebox
 import pandas as pd  
-from datetime import datetime, timedelta
-import datetime
+from datetime import datetime as dt, timedelta
+
 
 class App:
     def __init__(self, root):
@@ -179,7 +179,7 @@ class App:
 
                     # 테이블명에서 날짜 정보 추출
                     date_str = table_name[len(year):]  # 테이블명에서 년도 이후의 문자열 추출
-                    date_object = datetime.datetime.strptime(date_str, "%m%d")
+                    date_object = dt.strptime(date_str, "%m%d")
                     weekday = date_object.strftime("%A")
 
                     select_query_with_weekday = f"{select_query}, '{self.get_korean_weekday(weekday)}' AS '요일'"  # 요일을 그대로 사용
@@ -350,7 +350,7 @@ class App:
                 cursor.execute(f"SELECT COUNT(*) FROM `{table_name}`")
                 count = cursor.fetchone()[0]
 
-                arrival_time = (datetime.strptime(time, "%H:%M") + timedelta(minutes=30)).strftime("%H:%M")
+                arrival_time = (dt.strptime(time, "%H:%M") + timedelta(minutes=30)).strftime("%H:%M")
                 insert_query = self.get_insert_query(table_name)
 
                 # 엔트리 위젯에서 값을 가져와서 전달
@@ -391,7 +391,7 @@ class App:
     def get_insert_values(self, count, time, arrival_time, personnel, kid, location, remarks, phone):
         table_name = self.date_entry.get()
         # 이하 코드는 이전과 동일
-        date_object = datetime.strptime(self.date_entry.get(), "%Y%m%d")
+        date_object = dt.strptime(self.date_entry.get(), "%Y%m%d")
         weekday = date_object.strftime("%A")
         kid = 0 if kid is None or not kid.isdigit() else int(kid)
         personnel = 0 if not personnel.isdigit() else int(personnel)
