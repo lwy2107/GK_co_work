@@ -3,8 +3,7 @@ import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
 import pandas as pd  
 from datetime import datetime as dt, timedelta
-
-
+import datetime
 class App:
     def __init__(self, root):
         self.db_config = {
@@ -13,6 +12,8 @@ class App:
             'password': 'moonboat1124',
             'database': '',  # Leave it empty for now
         }
+        self.auto_fill_var = tk.BooleanVar(value=True)  # Variable to track the checkbox state
+
         self.selected_data_id = None
         self.selected_data_num = None
         self.column_value = None
@@ -26,10 +27,10 @@ class App:
         # 년도 선택 콤보박스
         self.year_label = ttk.Label(root, text="년도:",width=4)
         self.year_label.grid(row=0, column=0, padx=0, pady=0)
-        self.year_combobox = ttk.Combobox(root, values=["2021", "2022", "2023"], width=5)
+        self.year_combobox = ttk.Combobox(root, values=["2021", "2022", "2023", "2024"], width=5)
         self.year_combobox.grid(row=0, column=1, padx=0, pady=0)
-        self.year_combobox.set("2021")  # 초기값 설정
-        
+        self.year_combobox.set(str(datetime.datetime.now().year))  # Set to the current year
+
                 # 출력 버튼
         self.export_button = ttk.Button(root, text="출력", command=self.export_to_excel, width=5)
         self.export_button.grid(row=0, column=12, padx=0, pady=0)
@@ -42,27 +43,32 @@ class App:
         self.option_combobox.set("1")  # 초기값 설정
 
         # 검색어 입력
-        self.search_label = ttk.Label(root, text="검색어:",width=5)
+        self.search_label = ttk.Label(root, text="검색어:", width=5)
         self.search_label.grid(row=0, column=5, padx=0, pady=0)
         self.search_entry = ttk.Entry(root, width=5)
         self.search_entry.grid(row=0, column=6, padx=0, pady=0)
+        self.search_entry.insert(0, datetime.datetime.now().strftime("%m%d"))  # Set to the current date
+
 
         # 조회 버튼
         self.submit_button = ttk.Button(root, text="조회", command=self.fetch_and_display_data, width=5)
         self.submit_button.grid(row=0, column=7, padx=0, pady=0)
 
-        self.start_month_label = ttk.Label(root, text="시작 월:",width=6)
+        # 시작 월 선택 콤보박스
+        self.start_month_label = ttk.Label(root, text="시작 월:", width=6)
         self.start_month_label.grid(row=0, column=8, padx=0, pady=0)
-        self.start_month_combobox = ttk.Combobox(root, values=["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12"], width=2)
+        self.start_month_combobox = ttk.Combobox(root, values=[str(i).zfill(2) for i in range(1, 13)], width=2)
         self.start_month_combobox.grid(row=0, column=9, padx=0, pady=0)
-        self.start_month_combobox.set("01")  # 초기값 설정
+        self.start_month_combobox.set(str(datetime.datetime.now().month).zfill(2))  # Set to the current month
 
         # 끝 월 선택 콤보박스
-        self.end_month_label = ttk.Label(root, text="끝 월:",width=5)
+        self.end_month_label = ttk.Label(root, text="끝 월:", width=5)
         self.end_month_label.grid(row=0, column=10, padx=0, pady=0)
-        self.end_month_combobox = ttk.Combobox(root, values=["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12"], width=2)
+        self.end_month_combobox = ttk.Combobox(root, values=[str(i).zfill(2) for i in range(1, 13)], width=2)
         self.end_month_combobox.grid(row=0, column=11, padx=0, pady=0)
-        self.end_month_combobox.set("03")  # 초기값 설정
+        self.end_month_combobox.set(str(datetime.datetime.now().month).zfill(2))  # Set to the current month
+
+        # ... (rest of your
 
         self.tree = ttk.Treeview(root, show="headings")  # height 제거하여 동적으로 크기 조절
         self.tree.grid(row=1, column=0, columnspan=9, padx=0, pady=0, sticky="nsew")
@@ -80,19 +86,21 @@ class App:
         self.delete_button.grid(row=0, column=14, padx=0, pady=0)
 
         # 수정 및 삭제할 데이터 ID를 저장할 변수
-
+        self.option_combobox.event_generate("<<ComboboxSelected>>")
+        self.fetch_and_display_data()
         # 더블 클릭 이벤트에 메서드 바인딩
         self.tree.bind("<Double-1>", self.edit_data)
 
         # 창 크기 변경 시 Treeview 크기 조정
         self.root.bind("<Configure>", self.on_window_resize)
 
+        
 
     def configure_tree_columns(self):
         if self.selected_option == "1":
             columns = ("테이블명", "회차", "출항시간", "입항시간", "연락처", "지역", "인원", "비고", "요일")  # "요일" 열 추가
         elif self.selected_option == "2":
-            columns = ("테이블명", "회차", "출항시간", "입항시간", "연락처", "지역", "대인", "소인", "합계", "비고", "요일")  # "요일" 열 추가
+            columns = ("테이블명","회차", "출항시간", "입항시간", "연락처", "지역", "대인", "소인", "요일", "소계", "합계", "비고")  # "요일" 열 추가
 
         self.tree["columns"] = columns
 
@@ -170,7 +178,8 @@ class App:
                     select_query = ", ".join([f"`{col}`" if col in column_names else "''" for col in existing_columns])
 
                 elif self.selected_option == "2":
-                    existing_columns = ["회차", "출항시간", "입항시간", "연락처", "지역", "대인", "소인", "요일", "소계", "합계", "승선인원", "비고"]
+                    existing_columns = ["회차", "출항시간", "입항시간", "연락처", "지역", "대인", "소인", "요일", "소계", "합계", "비고"]
+                    
                     select_query = ", ".join([f"`{col}`" if col in column_names else "''" for col in existing_columns])
 
                 # 테이블별로 데이터 Treeview에 추가
@@ -237,61 +246,20 @@ class App:
                 print(f"엑셀 파일을 저장하는 중 오류가 발생했습니다: {e}")
 
     def open_insert_window(self):
+        self.insert_window = tk.Toplevel(self.root)
+        self.insert_window.title("데이터 추가")
+
+        self.create_common_widgets()
+
+        self.auto_fill_checkbox = tk.Checkbutton(self.insert_window, text="자동 입력", variable=self.auto_fill_var, command=self.update_fields)
+        self.auto_fill_checkbox.grid(row=8, columnspan=2)
+
         if self.selected_option == "1":
-            self.insert_window = tk.Toplevel(self.root)
-            self.insert_window.title("데이터 추가")
-
-            self.date_label = ttk.Label(self.insert_window, text="날짜 (YYYYMMDD):")
-            self.date_label.grid(row=0, column=0)
-            self.date_entry = ttk.Entry(self.insert_window)
-            self.date_entry.grid(row=0, column=1)
-
-            self.time_label = ttk.Label(self.insert_window, text="시간 (HH:MM):")
-            self.time_label.grid(row=1, column=0)
-            self.time_entry = ttk.Entry(self.insert_window)
-            self.time_entry.grid(row=1, column=1)
-
-            self.location_label = ttk.Label(self.insert_window, text="지역:")
-            self.location_label.grid(row=2, column=0)
-            self.location_entry = ttk.Entry(self.insert_window)
-            self.location_entry.grid(row=2, column=1)
-
             self.personnel_label = ttk.Label(self.insert_window, text="인원:")
             self.personnel_label.grid(row=3, column=0)
             self.personnel_entry = ttk.Entry(self.insert_window)
             self.personnel_entry.grid(row=3, column=1)
-            
-            self.phone_label = ttk.Label(self.insert_window, text="연락처:")
-            self.phone_label.grid(row=4, column=0)
-            self.phone_entry = ttk.Entry(self.insert_window)
-            self.phone_entry.grid(row=4, column=1)
-
-            self.remarks_label = ttk.Label(self.insert_window, text="비고:")
-            self.remarks_label.grid(row=5, column=0)
-            self.remarks_entry = ttk.Entry(self.insert_window)
-            self.remarks_entry.grid(row=5, column=1)
-
-            self.confirm_button = ttk.Button(self.insert_window, text="확인", command=self.save_data_and_close)
-            self.confirm_button.grid(row=6, columnspan=2)
         elif self.selected_option == "2":
-            self.insert_window = tk.Toplevel(self.root)
-            self.insert_window.title("데이터 추가")
-
-            self.date_label = ttk.Label(self.insert_window, text="날짜 (YYYYMMDD):")
-            self.date_label.grid(row=0, column=0)
-            self.date_entry = ttk.Entry(self.insert_window)
-            self.date_entry.grid(row=0, column=1)
-
-            self.time_label = ttk.Label(self.insert_window, text="시간 (HH:MM):")
-            self.time_label.grid(row=1, column=0)
-            self.time_entry = ttk.Entry(self.insert_window)
-            self.time_entry.grid(row=1, column=1)
-
-            self.location_label = ttk.Label(self.insert_window, text="지역:")
-            self.location_label.grid(row=2, column=0)
-            self.location_entry = ttk.Entry(self.insert_window)
-            self.location_entry.grid(row=2, column=1)
-
             self.personnel_label = ttk.Label(self.insert_window, text="대인:")
             self.personnel_label.grid(row=3, column=0)
             self.personnel_entry = ttk.Entry(self.insert_window)
@@ -302,20 +270,53 @@ class App:
             self.kid_entry = ttk.Entry(self.insert_window)
             self.kid_entry.grid(row=4, column=1)
 
-            self.phone_label = ttk.Label(self.insert_window, text="연락처:")
-            self.phone_label.grid(row=5, column=0)
-            self.phone_entry = ttk.Entry(self.insert_window)
-            self.phone_entry.grid(row=5, column=1)
+        self.confirm_button = ttk.Button(self.insert_window, text="확인", command=self.save_data_and_close)
+        self.confirm_button.grid(row=9, columnspan=2)
 
-            self.remarks_label = ttk.Label(self.insert_window, text="비고:")
-            self.remarks_label.grid(row=6, column=0)
-            self.remarks_entry = ttk.Entry(self.insert_window)
-            self.remarks_entry.grid(row=6, column=1)
+        # Initialize fields based on auto_fill_var
+        self.update_fields()
 
-            self.confirm_button = ttk.Button(self.insert_window, text="확인2", command=self.save_data_and_close)
-            self.confirm_button.grid(row=7, columnspan=2)
+    def create_common_widgets(self):
+        self.date_label = ttk.Label(self.insert_window, text="날짜 (YYYYMMDD):")
+        self.date_label.grid(row=0, column=0)
+        self.date_entry = ttk.Entry(self.insert_window)
+        self.date_entry.grid(row=0, column=1)
 
+        self.time_label = ttk.Label(self.insert_window, text="시간 (HH:MM):")
+        self.time_label.grid(row=1, column=0)
+        self.time_entry = ttk.Entry(self.insert_window)
+        self.time_entry.grid(row=1, column=1)
+        self.time_entry.insert(0, "HH:MM")  # Initial placeholder text
 
+        self.location_label = ttk.Label(self.insert_window, text="지역:")
+        self.location_label.grid(row=2, column=0)
+        self.location_entry = ttk.Entry(self.insert_window)
+        self.location_entry.grid(row=2, column=1)
+
+        self.phone_label = ttk.Label(self.insert_window, text="연락처:")
+        self.phone_label.grid(row=5, column=0)
+        self.phone_entry = ttk.Entry(self.insert_window)
+        self.phone_entry.grid(row=5, column=1)
+
+        self.remarks_label = ttk.Label(self.insert_window, text="비고:")
+        self.remarks_label.grid(row=6, column=0)
+        self.remarks_entry = ttk.Entry(self.insert_window)
+        self.remarks_entry.grid(row=6, column=1)
+
+    def update_fields(self):
+        # Update date and time fields based on the state of auto_fill_var
+        if self.auto_fill_var.get():
+            # Auto-fill with current date and time
+            import datetime
+            now = datetime.datetime.now()
+            self.date_entry.delete(0, tk.END)
+            self.date_entry.insert(0, now.strftime("%Y%m%d"))
+            self.time_entry.delete(0, tk.END)
+            self.time_entry.insert(0, now.strftime("%H:%M"))
+        else:
+            # Clear the entries for manual input
+            self.date_entry.delete(0, tk.END)
+            self.time_entry.delete(0, tk.END)
     def save_data(self):
         year = self.year_combobox.get()
         date = self.date_entry.get()
@@ -502,9 +503,6 @@ class App:
 
             # 열의 정보를 출력
             print(f"Double-clicked column: {column}")
-
-            # 선택된 열(column)의 값에 대한 정보 출력
-            self.column_value = self.tree.column(self.tree.identify_column(event.x), 'id')
             print(f"Value of the selected column: {self.column_value}")
 
             # 수정할 데이터를 받아오기
