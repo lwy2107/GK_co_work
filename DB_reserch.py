@@ -127,7 +127,7 @@ class App:
         if self.selected_option == "1":
             columns = ("테이블명", "회차", "출항시간", "입항시간", "연락처", "지역", "인원", "비고",  "요일","출항여부",)  # "요일" 열 추가
         elif self.selected_option == "2":
-            columns = ("테이블명", "회차", "출항시간", "입항시간", "연락처", "지역", "대인", "소인", "요일", "인원", "비고", "출항여부")  # "요일" 열 추가
+            columns = ("테이블명", "회차", "출항시간", "입항시간", "연락처", "지역", "대인", "소인", "요일", "출항여부", "인원", "비고")  # "요일" 열 추가
 
         self.tree["columns"] = columns
 
@@ -204,7 +204,7 @@ class App:
                     select_query = ", ".join([f"`{col}`" if col in column_names else "''" for col in existing_columns])
 
                 elif self.selected_option == "2":
-                    existing_columns = ["회차", "출항시간", "입항시간", "연락처", "지역", "대인", "소인", "요일", "소계", "비고", "출항여부"]
+                    existing_columns = ["회차", "출항시간", "입항시간", "연락처", "지역", "대인", "소인", "요일","출항여부", "소계", "비고" ]
                     select_query = ", ".join([f"`{col}`" if col in column_names else "''" for col in existing_columns])
 
                 # 테이블별로 데이터 Treeview에 추가
@@ -232,7 +232,12 @@ class App:
 
                         # Check if the search keyword matches any row data
                         if search_keyword.lower() in str(row).lower():
-                            self.tree.insert("", "end", values=row)
+                            # Add background color for rows with 회차 데이터가 1인 경우
+                            if row[9] == 1:  # 회차_인덱스를 실제 인덱스로 변경해야 합니다.
+                                self.tree.tag_configure('background_color', background='yellow')
+                                self.tree.insert("", "end", values=row, tags=('background_color',))
+                            else:
+                                self.tree.insert("", "end", values=row)
         except mysql.connector.Error as err:
             print(f"에러: {err}")
 
