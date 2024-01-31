@@ -13,6 +13,7 @@ class App:
             'password': 'moonboat1124',
             'database': '',  # Leave it empty for now
         }
+
         self.selected_data_id = None
         self.selected_data_num = None
         self.column_value = None
@@ -83,20 +84,50 @@ class App:
         self.delete_button = ttk.Button(root, text="삭제", command=self.delete_data, width=5)
         self.delete_button.grid(row=0, column=14, padx=0, pady=0)
 
-        # 수정 및 삭제할 데이터 ID를 저장할 변수
-
         # 더블 클릭 이벤트에 메서드 바인딩
         self.tree.bind("<Double-1>", self.edit_data)
 
         # 창 크기 변경 시 Treeview 크기 조정
         self.root.bind("<Configure>", self.on_window_resize)
-    
+        self.departure_button = ttk.Button(root, text="출항체크", command=self.check_departure, width=7)
+        self.departure_button.grid(row=0, column=15, padx=5, pady=5)
+
+    def check_departure(self):
+        item = self.tree.selection()
+        if item:
+            # 옵션과 연도에 기반하여 선택된 데이터베이스 설정
+            self.set_selected_database()
+
+            # 트리뷰에서 선택된 데이터 가져오기
+            selected_data = self.tree.item(item, "values")
+
+            # "출항여부" 열을 True로 업데이트
+            try:
+                with mysql.connector.connect(**self.db_config) as connection:
+                    cursor = connection.cursor()
+
+                    # 트리뷰의 첫 번째 열이 테이블 이름이라고 가정
+                    table_name = selected_data[0]
+
+                    # 테이블 구조에 따라 UPDATE 쿼리 조정
+                    update_query = f"UPDATE `{table_name}` SET 출항여부 = TRUE WHERE `회차` = %s"
+                    cursor.execute(update_query, (selected_data[1],))  # '회차'가 두 번째 열이라고 가정
+
+                    connection.commit()
+                    cursor.close()
+                    print(f"출항여부가 True로 업데이트되었습니다. '회차' {selected_data[1]}, 테이블 {table_name}.")
+
+                    # 변경 사항을 반영하기 위해 트리뷰를 새로고침
+                    self.fetch_and_display_data()
+
+            except mysql.connector.Error as err:
+                print(f"출항여부 업데이트 오류: {err}")
 
     def configure_tree_columns(self):
         if self.selected_option == "1":
-            columns = ("테이블명", "회차", "출항시간", "입항시간", "연락처", "지역", "인원", "비고", "요일")  # "요일" 열 추가
+            columns = ("테이블명", "회차", "출항시간", "입항시간", "연락처", "지역", "인원", "비고",  "요일", "출항여부")  # "요일" 열 추가
         elif self.selected_option == "2":
-            columns = ("테이블명", "회차", "출항시간", "입항시간", "연락처", "지역", "대인", "소인", "요일", "인원", "비고")  # "요일" 열 추가
+            columns = ("테이블명", "회차", "출항시간", "입항시간", "연락처", "지역", "대인", "소인", "요일", "인원", "비고", "출항여부")  # "요일" 열 추가
 
         self.tree["columns"] = columns
 
@@ -106,7 +137,6 @@ class App:
                 self.tree.column(col, width=100, anchor="center", stretch=False)
             else:
                 self.tree.column(col, width=100, anchor="center", stretch=False)
-
 
     def on_window_resize(self, event):
         # 창 크기가 변경될 때 Treeview의 높이를 동적으로 조절
@@ -170,11 +200,11 @@ class App:
 
                 # 선택한 열들을 조회하는 쿼리 생성
                 if self.selected_option == "1":
-                    existing_columns = ["회차", "출항시간", "입항시간", "연락처", "지역", "인원", "비고"]
+                    existing_columns = ["회차", "출항시간", "입항시간", "연락처", "지역", "인원", "비고", "요일", "출항여부"]
                     select_query = ", ".join([f"`{col}`" if col in column_names else "''" for col in existing_columns])
 
                 elif self.selected_option == "2":
-                    existing_columns = ["회차", "출항시간", "입항시간", "연락처", "지역", "대인", "소인", "요일", "소계", "비고"]
+                    existing_columns = ["회차", "출항시간", "입항시간", "연락처", "지역", "대인", "소인", "요일", "소계", "비고", "출항여부"]
                     select_query = ", ".join([f"`{col}`" if col in column_names else "''" for col in existing_columns])
 
                 # 테이블별로 데이터 Treeview에 추가
@@ -215,7 +245,6 @@ class App:
             return korean_weekdays[weekdays.index(weekday)]
         else:
             return weekday
-
 
     def export_to_excel(self):
         # 트리뷰의 열 이름 가져오기
@@ -302,7 +331,6 @@ class App:
         # Update date and time fields based on the state of auto_fill_var
         if self.auto_fill_var.get():
             # Auto-fill with current date and time
-            import datetime
             now = datetime.datetime.now()
             self.date_entry.delete(0, tk.END)
             self.date_entry.insert(0, now.strftime("%Y%m%d"))
@@ -365,35 +393,34 @@ class App:
         except mysql.connector.Error as err:
             print(f"저장 오류: {err}")
 
+    # App 클래스의 get_create_table_query 메서드 수정
     def get_create_table_query(self):
-        table_name = self.date_entry.get()  # 사용자 입력 날짜에 기반한 테이블 이름 생성
-        # '회차' 필드에 기본값 0 추가
+        table_name = self.date_entry.get()
         if self.selected_option == "1":
-            query = f"CREATE TABLE `{table_name}` (회차 INT DEFAULT 0, 출항시간 TIME, 입항시간 TIME, 연락처 VARCHAR(255), 지역 VARCHAR(255), 인원 INT, 비고 VARCHAR(255))"
+            query = f"CREATE TABLE `{table_name}` (회차 INT DEFAULT 0, 출항시간 TIME, 입항시간 TIME, 연락처 VARCHAR(255), 지역 VARCHAR(255), 인원 INT, 비고 VARCHAR(255), 요일 VARCHAR(255), 출항여부 BOOLEAN DEFAULT FALSE)"
         elif self.selected_option == "2":
-            query = f"CREATE TABLE `{table_name}` (회차 INT DEFAULT 0, 출항시간 TIME, 입항시간 TIME, 연락처 VARCHAR(255), 지역 VARCHAR(255), 대인 INT, 소인 INT, 요일 VARCHAR(255), 소계 INT, 합계 INT, 승선인원 INT, 비고 VARCHAR(255))"
+            query = f"CREATE TABLE `{table_name}` (회차 INT DEFAULT 0, 출항시간 TIME, 입항시간 TIME, 연락처 VARCHAR(255), 지역 VARCHAR(255), 대인 INT, 소인 INT, 요일 VARCHAR(255), 소계 INT, 합계 INT, 승선인원 INT, 비고 VARCHAR(255), 출항여부 BOOLEAN DEFAULT FALSE)"
         
-        print("CREATE TABLE QUERY:", query)  # 추가된 부분
-
+        print("CREATE TABLE QUERY:", query)
         return query
 
+
+    # App 클래스의 get_insert_query 메서드 수정
     def get_insert_query(self, table_name):
-        # '회차' 필드에 값을 명시적으로 지정
         if self.selected_option == "1":
-            return f"INSERT INTO `{table_name}` (출항시간, 입항시간, 회차, 연락처, 지역, 인원, 비고) VALUES (%s, %s, %s, %s, %s, %s, %s)"
+            return f"INSERT INTO `{table_name}` (출항시간, 입항시간, 회차, 연락처, 지역, 인원, 비고, 요일) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)"
         elif self.selected_option == "2":
             return f"INSERT INTO `{table_name}` (출항시간, 입항시간, 회차, 연락처, 지역, 대인, 소인, 요일, 소계, 합계, 승선인원, 비고) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
 
+    # App 클래스의 get_insert_values 메서드 수정
     def get_insert_values(self, count, time, arrival_time, personnel, kid, location, remarks, phone):
         table_name = self.date_entry.get()
-        # 이하 코드는 이전과 동일
         date_object = dt.strptime(self.date_entry.get(), "%Y%m%d")
         weekday = date_object.strftime("%A")
         kid = 0 if kid is None or not kid.isdigit() else int(kid)
         personnel = 0 if not personnel.isdigit() else int(personnel)
         total = kid + personnel
 
-        # '회차' 값을 현재 데이터베이스에 있는 최대 '회차' 값보다 1 증가시켜 설정
         try:
             with mysql.connector.connect(**self.db_config) as connection:
                 cursor = connection.cursor()
@@ -403,10 +430,11 @@ class App:
         except mysql.connector.Error as err:
             print(f"회차 확인 오류: {err}")
             count = None
+
         if self.selected_option == "1":
-            return (time, arrival_time, count, phone, location, personnel, remarks)
+            return (time, arrival_time, count, phone, location, personnel, remarks, self.get_korean_weekday(weekday))
         elif self.selected_option == "2":
-            return (time, arrival_time, count, phone, location, personnel, kid, weekday, total, total, total, remarks)
+            return (time, arrival_time, count, phone, location, personnel, kid, self.get_korean_weekday(weekday), total, total, total, remarks)
 
         try:
             with mysql.connector.connect(**self.db_config) as connection:
@@ -420,8 +448,8 @@ class App:
         if self.selected_option == "1":
             return (time, arrival_time, phone, location, personnel, remarks)
         elif self.selected_option == "2":
-            return (time, arrival_time, phone, location, personnel, kid, weekday, total, total, total, remarks)
-                
+            return (time, arrival_time, phone, location, personnel, kid, self.get_korean_weekday(weekday), total, total, total, remarks)
+
     def get_user_input(self, title, prompt):
         root = tk.Tk()
         root.title(title)
