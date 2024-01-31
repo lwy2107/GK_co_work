@@ -125,7 +125,7 @@ class App:
 
     def configure_tree_columns(self):
         if self.selected_option == "1":
-            columns = ("테이블명", "회차", "출항시간", "입항시간", "연락처", "지역", "인원", "비고",  "요일", "출항여부")  # "요일" 열 추가
+            columns = ("테이블명", "회차", "출항시간", "입항시간", "연락처", "지역", "인원", "비고",  "요일","출항여부",)  # "요일" 열 추가
         elif self.selected_option == "2":
             columns = ("테이블명", "회차", "출항시간", "입항시간", "연락처", "지역", "대인", "소인", "요일", "인원", "비고", "출항여부")  # "요일" 열 추가
 
@@ -200,7 +200,7 @@ class App:
 
                 # 선택한 열들을 조회하는 쿼리 생성
                 if self.selected_option == "1":
-                    existing_columns = ["회차", "출항시간", "입항시간", "연락처", "지역", "인원", "비고", "요일", "출항여부"]
+                    existing_columns = ["회차", "출항시간", "입항시간", "연락처", "지역", "인원", "비고", "출항여부"]
                     select_query = ", ".join([f"`{col}`" if col in column_names else "''" for col in existing_columns])
 
                 elif self.selected_option == "2":
