@@ -78,19 +78,16 @@ class App:
         self.tree_scrollbar.grid(row=1, column=10, sticky="ns") 
 
         # 옵션 콤보박스 값 변경 이벤트에 메서드 바인딩
-        self.option_combobox.bind("<<ComboboxSelected>>", self.update_columns)
+        self.option_combobox.bind("<<ComboboxSelected>>", self.update_columns) #콤보박스 값 변경시 해당사항에 맞게 조회프로그램 패치실행
+        self.tree.bind("<Double-1>", self.edit_data)        # 더블 클릭 이벤트에 메서드 바인딩으로 에디터를 실행
+        self.root.bind("<Configure>", self.on_window_resize)        # 창 크기 변경 시 Treeview 크기 조정
 
-        
-        self.delete_button = ttk.Button(root, text="삭제", command=self.delete_data, width=5)
-        self.delete_button.grid(row=0, column=14, padx=0, pady=0)
-
-        # 더블 클릭 이벤트에 메서드 바인딩
-        self.tree.bind("<Double-1>", self.edit_data)
-
-        # 창 크기 변경 시 Treeview 크기 조정
-        self.root.bind("<Configure>", self.on_window_resize)
-        self.departure_button = ttk.Button(root, text="출항체크", command=self.check_departure, width=7)
+        self.departure_button = ttk.Button(root, text="출항체크", command=self.check_departure, width=7) #출항체크여부를 위한 버튼
         self.departure_button.grid(row=0, column=15, padx=5, pady=5)
+        self.selected_option = self.option_combobox.get()     
+
+        self.configure_tree_columns() #프로그램이 시작될때 자동으로 바인딩된 콤보박스값을 이용하여 해당사항에 맞게 조회프로그램 패치실행
+        self.fetch_and_display_data()
 
     def check_departure(self):
         item = self.tree.selection()
