@@ -1,10 +1,11 @@
 import mysql.connector
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
-import pandas as pd  
+import pandas as pd
 from datetime import datetime as dt, timedelta
 import datetime
-
+import openpyxl
+import os
 class App:
     def __init__(self, root):
         self.db_config = {
@@ -32,7 +33,7 @@ class App:
         self.year_combobox.grid(row=0, column=1, padx=0, pady=0)
         self.year_combobox.set(str(datetime.datetime.now().year))  # Set to the current year
         
-                # 출력 버튼
+        # 출력 버튼
         self.export_button = ttk.Button(root, text="출력", command=self.export_to_excel, width=5)
         self.export_button.grid(row=0, column=12, padx=0, pady=0)
 
@@ -53,6 +54,9 @@ class App:
         # 조회 버튼
         self.submit_button = ttk.Button(root, text="조회", command=self.fetch_and_display_data, width=5)
         self.submit_button.grid(row=0, column=7, padx=0, pady=0)
+
+        self.submit_button = ttk.Button(root, text="조회", command=self.convert_excel_to_csv_and_insert_to_db, width=5)
+        self.submit_button.grid(row=1, column=11, padx=0, pady=0)
 
         # 시작 월 선택 콤보박스
         self.start_month_label = ttk.Label(root, text="시작 월:", width=6)
