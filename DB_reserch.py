@@ -1,11 +1,12 @@
 import mysql.connector
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
-import pandas as pd
+import pandas as pd  
 from datetime import datetime as dt, timedelta
 import datetime
+from sqlalchemy import create_engine
 import openpyxl
-import os
+import re
 class App:
     def __init__(self, root):
         self.db_config = {
@@ -14,6 +15,9 @@ class App:
             'password': 'moonboat1124',
             'database': '',  # Leave it empty for now
         }
+
+        self.convert_button = tk.Button(root, text="Convert Excel to DB", command=self.convert_excel_to_database)
+        self.convert_button.grid(row=0, column=2, padx=5, pady=5)
 
         self.selected_data_id = None
         self.selected_data_num = None
@@ -33,11 +37,10 @@ class App:
         self.year_combobox.grid(row=0, column=1, padx=0, pady=0)
         self.year_combobox.set(str(datetime.datetime.now().year))  # Set to the current year
         
-        # 출력 버튼
+                # 출력 버튼
         self.export_button = ttk.Button(root, text="출력", command=self.export_to_excel, width=5)
         self.export_button.grid(row=0, column=12, padx=0, pady=0)
 
-        # 옵션 선택
         self.option_label = ttk.Label(root, text="옵션:",width=5)
         self.option_label.grid(row=0, column=3, padx=0, pady=0)
         self.option_combobox = ttk.Combobox(root, values=["1", "2"], width=2)
@@ -54,9 +57,6 @@ class App:
         # 조회 버튼
         self.submit_button = ttk.Button(root, text="조회", command=self.fetch_and_display_data, width=5)
         self.submit_button.grid(row=0, column=7, padx=0, pady=0)
-
-        self.submit_button = ttk.Button(root, text="조회", command=self.convert_excel_to_csv_and_insert_to_db, width=5)
-        self.submit_button.grid(row=1, column=11, padx=0, pady=0)
 
         # 시작 월 선택 콤보박스
         self.start_month_label = ttk.Label(root, text="시작 월:", width=6)
@@ -590,6 +590,90 @@ class App:
 
                 # Now, remove the selected item from the TreeView
                 self.tree.delete(item)
+    def filename(self, filename):
+        # 파일명에서 "YYYYMMDD" 형식의 날짜를 추출
+        match = re.search(r'(\d{8})', filename)
+        if match:
+            date_str = match.group()
+            return str(date_str)  # 연도를 문자열로 변환
+        else:
+            return None
+
+    def extract_year_from_filename(self, filename):
+        # 파일명에서 "YYYYMMDD" 형식의 날짜를 추출
+        match = re.search(r'(\d{8})', filename)
+        if match:
+            date_str = match.group()
+            date_obj = dt.strptime(date_str, "%Y%m%d")
+            return str(date_obj.year)  # 연도를 문자열로 변환
+        else:
+            return None
+    def convert_excel_to_database(self):
+        data_ranges = [
+            'A5:I16', 'J5:R16', 'S5:AA16', 'AB5:AJ16', 'AK5:AS16', 'AT5:BB16',
+            'BC5:BK16', 'BL5:BT16', 'BU5:CC16', 'CD5:CL16', 'CM5:CU16', 'CV5:DD16',
+            'DE5:DM16', 'DN5:DV16', 'DW5:EE16', 'EF5:EN16', 'EO5:EW16', 'EX5:FF16',
+            'FG5:FO16', 'FP5:FX16', 'FY5:GG16', 'GH5:GP16', 'GQ5:GY16', 'GZ5:HH16',
+            'HI5:HQ16', 'HR5:HZ16', 'IA5:II16', 'IJ5:IR16', 'IS5:JA16', 'JB5:JJ16',
+            'JK5:JS16', 'JT5:KB16'
+        ]
+
+        try:
+            # 엑셀 파일 선택
+            excel_file_path = filedialog.askopenfilename(title="Select Excel File", filetypes=[("Excel files", "*.xlsx;*.xls")])
+
+            # 선택된 파일이 없으면 함수 종료
+            if not excel_file_path:
+                return
+
+            # 엑셀 파일을 열기
+            workbook = openpyxl.load_workbook(excel_file_path, data_only=True)
+            sheet = workbook.active
+
+            # 선택된 데이터 범위에 해당하는 열을 추출하여 리스트에 추가
+            selected_columns = []
+            for data_range in data_ranges:
+                for column in sheet[data_range]:
+                    column_data = [cell.value for cell in column]
+                    selected_columns.append(column_data)
+
+            # 칼럼명을 지정하여 DataFrame 생성
+            column_names = ["회차", "출항시간", "입항시간", "연락처","지역", "인원", "비고", "요일", "출항여부"]
+            df = pd.DataFrame(selected_columns, columns=column_names)
+            df['입항시간'] = df['지역'].copy()
+            # H열의 내용을 D열로 복사
+            df['연락처'] = df['요일'].copy()
+            # I열의 내용을 F열로 복사
+            df['인원'] = df['출항여부'].copy()
+            df['지역'] = pd.NA
+            df['요일'] = pd.NA
+            df['출항여부'] = 1
+            df = df.dropna(subset=['연락처', '인원'], how='any')
+            # 파일명에서 전체 날짜 추출
+            year_filename = self.filename(excel_file_path)
+            year_from_filename = self.extract_year_from_filename(excel_file_path)
+
+            if year_from_filename is None:
+                raise ValueError("파일명에서 날짜를 추출할 수 없습니다.")
+
+            # 데이터베이스 연결 정보
+            db_config = {
+                'host': '220.69.222.136',
+                'user': 'tester',
+                'password': 'moonboat1124',
+                'database': year_from_filename  # 연도를 테이블명으로 사용
+            }
+
+            # 데이터베이스에 연결
+            engine = create_engine(f"mysql+mysqlconnector://{db_config['user']}:{db_config['password']}@{db_config['host']}/{db_config['database']}")
+
+            # DataFrame을 데이터베이스에 삽입, 테이블명을 동적으로 생성
+            df.to_sql(name=year_filename, con=engine, if_exists='replace', index=False, index_label=None)
+
+            print(f"Conversion completed. Data saved to the table '{year_filename}'.")
+
+        except Exception as e:
+            print(f"오류 발생: {e}")
 
 if __name__ == "__main__":
     root = tk.Tk()
