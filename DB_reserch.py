@@ -126,9 +126,9 @@ class App:
 
     def configure_tree_columns(self):
         if self.selected_option == "1":
-            columns = ("테이블명", "회차", "출항시간", "입항시간", "연락처", "지역", "인원", "비고",  "요일","출항여부",)  # "요일" 열 추가
+            columns = ("테이블명", "회차", "출항시간", "입항시간", "연락처", "지역", "인원", "비고",  "출항여부",)  # "요일" 열 추가
         elif self.selected_option == "2":
-            columns = ("테이블명", "회차", "출항시간", "입항시간", "연락처", "지역", "대인", "소인", "요일", "출항여부", "인원", "비고")  # "요일" 열 추가
+            columns = ("테이블명", "회차", "출항시간", "입항시간", "연락처", "지역", "대인", "소인",  "출항여부", "인원", "비고")  # "요일" 열 추가
 
         self.tree["columns"] = columns
 
@@ -201,11 +201,11 @@ class App:
 
                 # 선택한 열들을 조회하는 쿼리 생성
                 if self.selected_option == "1":
-                    existing_columns = ["회차", "출항시간", "입항시간", "연락처",  "지역", "인원", "비고", "요일", "출항여부"]
+                    existing_columns = ["회차", "출항시간", "입항시간", "연락처",  "지역", "인원", "비고",  "출항여부"]
                     select_query = ", ".join([f"`{col}`" if col in column_names else "''" for col in existing_columns])
 
                 elif self.selected_option == "2":
-                    existing_columns = ["회차", "출항시간", "입항시간", "연락처", "지역", "대인", "소인", "요일","출항여부", "소계", "비고" ]
+                    existing_columns = ["회차", "출항시간", "입항시간", "연락처", "지역", "대인", "소인", "출항여부", "소계", "비고" ]
                     select_query = ", ".join([f"`{col}`" if col in column_names else "''" for col in existing_columns])
 
                 # 테이블별로 데이터 Treeview에 추가
@@ -416,7 +416,7 @@ class App:
         if self.selected_option == "1":
             return f"INSERT INTO `{table_name}` (출항시간, 입항시간, 회차, 연락처, 지역, 인원, 비고, 요일) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)"
         elif self.selected_option == "2":
-            return f"INSERT INTO `{table_name}` (출항시간, 입항시간, 회차, 연락처, 지역, 대인, 소인, 요일, 소계, 합계, 승선인원, 비고) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
+            return f"INSERT INTO `{table_name}` (출항시간, 입항시간, 회차, 연락처, 지역,요일합계, 비고) VALUES (%s, %s, %s, %s, %s, %s, %s)"
 
     # App 클래스의 get_insert_values 메서드 수정
     def get_insert_values(self, count, time, arrival_time, personnel, kid, location, remarks, phone):
